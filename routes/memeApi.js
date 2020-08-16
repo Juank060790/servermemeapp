@@ -6,6 +6,13 @@ const photoHelper = require("../helpers/photo.helper");
 const memeController = require("../controllers/memeController");
 
 /**
+ * @route GET api/memes/images
+ * @description Get all memes
+ * @access Public
+ */
+router.get("/images", memeController.getOriginalImages);
+
+/**
  * @route GET api/memes
  * @description Get all memes
  * @access Public
@@ -23,6 +30,8 @@ router.post(
   photoHelper.resize,
   memeController.createMeme
 );
+
+router.put("/:id", memeController.updateMeme);
 
 memeController.updateMeme = async (req, res, next) => {
   try {
