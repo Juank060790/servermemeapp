@@ -19,8 +19,12 @@ memeController.createMeme = async (req, res, next) => {
     meme.outputMemePath = `${req.file.destination}/MEME_${
       meme.id
     }.${meme.originalImage.split(".").pop()}`;
-    if (!Array.isArray(texts)) texts = [texts];
-    meme.texts = texts.map((text) => JSON.parse(text));
+    if (texts) {
+      if (!Array.isArray(texts)) texts = [texts];
+      meme.texts = texts.map((text) => JSON.parse());
+    } else {
+      meme.texts = [];
+    }
     // texts && texts.length ?  : [];
     // Put text on image
     await photoHelper.putTextOnImage(
@@ -41,6 +45,57 @@ memeController.createMeme = async (req, res, next) => {
       meme,
       null,
       "The new meme has been created!"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+memeController.updateMeme = async (req, res, next) => {
+  try {
+    const memeId = req.params.id;
+    // Read data from the json file
+    let rawData = fs.readFileSync("memes.json");
+    let memes = JSON.parse(rawData).memes;
+    const index = memes.findIndex((meme) => meme.id === memeId);
+    if (index === -1) {
+      return utilsHelper.sendResponse(
+        res,
+        400,
+        false,
+        null,
+        new Error("Meme not found"),
+        null
+      );
+    }
+    const meme = memes[index];
+    let { texts } = req.body;
+    if (texts) {
+      if (!Array.isArray(texts)) texts = [texts];
+      meme.texts = texts;
+    }
+
+    // const meme = memes[index];
+    // let { texts } = req.body.texts;
+    // if (!Array.isArray(texts)) texts = [texts];
+    // meme.texts = texts || [];
+
+    meme.updatedAt = Date.now();
+
+    // Put text on image
+    await photoHelper.putTextOnImage(
+      meme.originalImagePath,
+      meme.outputMemePath,
+      meme.texts
+    );
+    fs.writeFileSync("memes.json", JSON.stringify({ memes }));
+    return utilsHelper.sendResponse(
+      res,
+      200,
+      true,
+      meme,
+      null,
+      "Meme has been updated!"
     );
   } catch (err) {
     next(err);
@@ -101,44 +156,4 @@ memeController.getOriginalImages = (req, res, next) => {
   }
 };
 
-memeController.updateMeme = async (req, res, next) => {
-  try {
-    const memeId = req.params.id;
-    // Read data from the json file
-    let rawData = fs.readFileSync("memes.json");
-    let memes = JSON.parse(rawData).memes;
-    const index = memes.findIndex((meme) => meme.id === memeId);
-    if (index === -1) {
-      return utilsHelper.sendResponse(
-        res,
-        400,
-        false,
-        null,
-        new Error("Meme not found"),
-        null
-      );
-    }
-    const meme = memes[index];
-    meme.texts = req.body.texts || [];
-    meme.updatedAt = Date.now();
-
-    // Put text on image
-    await photoHelper.putTextOnImage(
-      meme.originalImagePath,
-      meme.outputMemePath,
-      meme.texts
-    );
-    fs.writeFileSync("memes.json", JSON.stringify({ memes }));
-    return utilsHelper.sendResponse(
-      res,
-      200,
-      true,
-      meme,
-      null,
-      "Meme has been updated!"
-    );
-  } catch (err) {
-    next(err);
-  }
-};
 module.exports = memeController;
